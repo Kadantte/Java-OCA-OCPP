@@ -61,6 +61,11 @@ public class TimeoutSessionDecorator implements ISession {
   }
 
   @Override
+  public IFeatureRepository getFeatureRepository() {
+    return session.getFeatureRepository();
+  }
+
+  @Override
   public UUID getSessionId() {
     return session.getSessionId();
   }
@@ -85,6 +90,11 @@ public class TimeoutSessionDecorator implements ISession {
   @Override
   public void sendRequest(String action, Request payload, String uuid) {
     this.session.sendRequest(action, payload, uuid);
+  }
+
+  @Override
+  public boolean completePendingPromise(String id, Confirmation confirmation) throws UnsupportedFeatureException, OccurenceConstraintException {
+    return this.session.completePendingPromise(id, confirmation);
   }
 
   @Override
@@ -114,6 +124,11 @@ public class TimeoutSessionDecorator implements ISession {
           }
         }
         return confirmation;
+      }
+
+      @Override
+      public boolean asyncCompleteRequest(String uniqueId, Confirmation confirmation) throws UnsupportedFeatureException, OccurenceConstraintException {
+        return eventHandler.asyncCompleteRequest(uniqueId, confirmation);
       }
 
       @Override

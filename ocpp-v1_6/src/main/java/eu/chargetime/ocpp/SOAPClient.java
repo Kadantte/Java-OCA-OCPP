@@ -79,7 +79,7 @@ public class SOAPClient implements IClientAPI {
     this.communicator = new SOAPCommunicator(hostInfo, transmitter);
     featureRepository = new FeatureRepository();
     ISession session = new SessionFactory(featureRepository).createSession(communicator);
-    this.client = new Client(session, featureRepository, new PromiseRepository());
+    this.client = new Client(session, new PromiseRepository());
     featureRepository.addFeatureProfile(coreProfile);
   }
 
@@ -103,6 +103,11 @@ public class SOAPClient implements IClientAPI {
   public CompletionStage<Confirmation> send(Request request)
       throws OccurenceConstraintException, UnsupportedFeatureException {
     return client.send(request);
+  }
+
+  @Override
+  public boolean asyncCompleteRequest(String uniqueId, Confirmation confirmation) throws UnsupportedFeatureException, OccurenceConstraintException {
+    return client.asyncCompleteRequest(uniqueId, confirmation);
   }
 
   /** Disconnect from server Closes down local callback service. */

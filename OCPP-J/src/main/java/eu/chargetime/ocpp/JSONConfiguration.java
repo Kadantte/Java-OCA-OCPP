@@ -36,15 +36,23 @@ public class JSONConfiguration {
   public static final String PING_INTERVAL_PARAMETER = "PING_INTERVAL";
   public static final String USERNAME_PARAMETER = "USERNAME";
   public static final String PASSWORD_PARAMETER = "PASSWORD";
+  public static final String CONNECT_NON_BLOCKING_PARAMETER = "CONNECT_NON_BLOCKING";
   public static final String CONNECT_TIMEOUT_IN_MS_PARAMETER = "CONNECT_TIMEOUT_IN_MS";
   public static final String WEBSOCKET_WORKER_COUNT = "WEBSOCKET_WORKER_COUNT";
+  public static final String HTTP_HEALTH_CHECK_ENABLED = "HTTP_HEALTH_CHECK_ENABLED";
+  public static final String OCPPJ_CP_MIN_PASSWORD_LENGTH = "OCPPJ_CP_MIN_PASSWORD_LENGTH";
+  public static final String OCPPJ_CP_MAX_PASSWORD_LENGTH = "OCPPJ_CP_MAX_PASSWORD_LENGTH";
+  public static final String OCPP2J_CP_MIN_PASSWORD_LENGTH = "OCPP2J_CP_MIN_PASSWORD_LENGTH";
+  public static final String OCPP2J_CP_MAX_PASSWORD_LENGTH = "OCPP2J_CP_MAX_PASSWORD_LENGTH";
 
   private final HashMap<String, Object> parameters = new HashMap<>();
 
   private JSONConfiguration() {}
 
+  private static final JSONConfiguration instance = new JSONConfiguration();
+
   public static JSONConfiguration get() {
-    return new JSONConfiguration();
+    return instance;
   }
 
   public <T> JSONConfiguration setParameter(String name, T value) {

@@ -57,7 +57,7 @@ public class JSONTestClient implements IClientAPI {
     JSONCommunicator communicator = new JSONCommunicator(transmitter);
     featureRepository = new FeatureRepository();
     ISession session = new TestSessionFactory(featureRepository).createSession(communicator);
-    client = new Client(session, featureRepository, new PromiseRepository());
+    client = new Client(session, new PromiseRepository());
     featureRepository.addFeatureProfile(coreProfile);
   }
 
@@ -78,6 +78,11 @@ public class JSONTestClient implements IClientAPI {
   public CompletionStage<Confirmation> send(Request request)
       throws OccurenceConstraintException, UnsupportedFeatureException {
     return client.send(request);
+  }
+
+  @Override
+  public boolean asyncCompleteRequest(String uniqueId, Confirmation confirmation) throws UnsupportedFeatureException, OccurenceConstraintException {
+    return client.asyncCompleteRequest(uniqueId, confirmation);
   }
 
   @Override

@@ -203,7 +203,7 @@ public class DummyHandlers {
     return new ServerEvents() {
       @Override
       public void authenticateSession(
-          SessionInformation information, String username, byte[] password) throws AuthenticationException {}
+          SessionInformation information, String username, String password) throws AuthenticationException {}
 
       @Override
       public void newSession(UUID sessionIndex, SessionInformation information) {
@@ -226,7 +226,7 @@ public class DummyHandlers {
     return (confirmation, throwable) -> receivedConfirmation = confirmation;
   }
 
-  private <T extends Confirmation> T failurePoint(T confirmation) {
+  <T extends Confirmation> T failurePoint(T confirmation) {
     if (riggedToFail) {
       riggedToFail = false;
       throw new RuntimeException();

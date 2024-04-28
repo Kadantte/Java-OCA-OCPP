@@ -47,22 +47,20 @@ public class Server {
 
   public static final int INITIAL_SESSIONS_NUMBER = 1000;
 
-  private Map<UUID, ISession> sessions;
-  private Listener listener;
-  private final IFeatureRepository featureRepository;
+  private final Map<UUID, ISession> sessions;
+  private final Listener listener;
   private final IPromiseRepository promiseRepository;
 
   /**
    * Constructor. Handles the required injections.
    *
    * @param listener injected listener.
+   * @param promiseRepository injected promise repository.
    */
   public Server(
       Listener listener,
-      IFeatureRepository featureRepository,
       IPromiseRepository promiseRepository) {
     this.listener = listener;
-    this.featureRepository = featureRepository;
     this.promiseRepository = promiseRepository;
     this.sessions = new ConcurrentHashMap<>(INITIAL_SESSIONS_NUMBER);
   }
@@ -83,7 +81,7 @@ public class Server {
 
           @Override
           public void authenticateSession(
-              SessionInformation information, String username, byte[] password)
+              SessionInformation information, String username, String password)
               throws AuthenticationException {
             serverEvents.authenticateSession(information, username, password);
           }
@@ -108,7 +106,7 @@ public class Server {
                   @Override
                   public Confirmation handleRequest(Request request)
                       throws UnsupportedFeatureException {
-                    Optional<Feature> featureOptional = featureRepository.findFeature(request);
+                    Optional<Feature> featureOptional = session.getFeatureRepository().findFeature(request);
                     if (featureOptional.isPresent()) {
                       Optional<UUID> sessionIdOptional = getSessionID(session);
                       if (sessionIdOptional.isPresent()) {
@@ -117,13 +115,18 @@ public class Server {
                             .handleRequest(sessionIdOptional.get(), request);
                       } else {
                         logger.error(
-                            "Unable to handle request ({}), the active session was not found.",
-                            request);
+                            "Unable to handle request ({}), the active session was not found for {}.",
+                            request, session.getSessionId());
                         throw new IllegalStateException("Active session not found");
                       }
                     } else {
                       throw new UnsupportedFeatureException();
                     }
+                  }
+
+                  @Override
+                  public boolean asyncCompleteRequest(String uniqueId, Confirmation confirmation) throws UnsupportedFeatureException, OccurenceConstraintException {
+                    return session.completePendingPromise(uniqueId, confirmation);
                   }
 
                   @Override
@@ -149,7 +152,7 @@ public class Server {
                       serverEvents.lostSession(sessionIdOptional.get());
                       sessions.remove(sessionIdOptional.get());
                     } else {
-                      logger.warn("Active session not found");
+                      logger.warn("Active session not found for {}", session.getSessionId());
                     }
                   }
 
@@ -195,15 +198,6 @@ public class Server {
    */
   public CompletableFuture<Confirmation> send(UUID sessionIndex, Request request)
       throws UnsupportedFeatureException, OccurenceConstraintException, NotConnectedException {
-    Optional<Feature> featureOptional = featureRepository.findFeature(request);
-    if (!featureOptional.isPresent()) {
-      throw new UnsupportedFeatureException();
-    }
-
-    if (!request.validate()) {
-      throw new OccurenceConstraintException();
-    }
-
     ISession session = sessions.get(sessionIndex);
 
     if (session == null) {
@@ -213,11 +207,43 @@ public class Server {
       throw new NotConnectedException();
     }
 
+    Optional<Feature> featureOptional = session.getFeatureRepository().findFeature(request);
+    if (!featureOptional.isPresent()) {
+      throw new UnsupportedFeatureException();
+    }
+
+    if (!request.validate()) {
+      throw new OccurenceConstraintException();
+    }
+
     String id = session.storeRequest(request);
     CompletableFuture<Confirmation> promise = promiseRepository.createPromise(id);
     session.sendRequest(featureOptional.get().getAction(), request, id);
     return promise;
   }
+
+  /**
+   * Indicate completion of a pending request.
+   *
+   * @param sessionIndex Session index of the client.
+   * @param uniqueId the unique id used for the original {@link Request}.
+   * @param confirmation the {@link Confirmation} to the original {@link Request}.
+   * @return a boolean indicating if pending request was found.
+   * @throws NotConnectedException Thrown if session with passed sessionIndex is not found
+   */
+  public boolean asyncCompleteRequest(UUID sessionIndex, String uniqueId, Confirmation confirmation) throws NotConnectedException, UnsupportedFeatureException, OccurenceConstraintException {
+    ISession session = sessions.get(sessionIndex);
+
+    if (session == null) {
+      logger.warn("Session not found by index: {}", sessionIndex);
+
+      // No session found means client disconnected and request should be cancelled
+      throw new NotConnectedException();
+    }
+
+    return session.completePendingPromise(uniqueId, confirmation);
+  }
+
 
   public boolean isSessionOpen(UUID sessionIndex) {
     return sessions.containsKey(sessionIndex);

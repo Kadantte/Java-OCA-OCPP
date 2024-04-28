@@ -43,7 +43,7 @@ public class SOAPTestServer implements IServerAPI {
     featureRepository = new FeatureRepository();
     ISessionFactory sessionFactory = new TestSessionFactory(featureRepository);
     this.listener = new WebServiceListener(sessionFactory);
-    server = new Server(this.listener, featureRepository, new PromiseRepository());
+    server = new Server(this.listener, new PromiseRepository());
     featureRepository.addFeatureProfile(coreProfile);
   }
 
@@ -86,5 +86,10 @@ public class SOAPTestServer implements IServerAPI {
   public CompletionStage<Confirmation> send(UUID session, Request request)
       throws OccurenceConstraintException, UnsupportedFeatureException, NotConnectedException {
     return server.send(session, request);
+  }
+
+  @Override
+  public boolean asyncCompleteRequest(UUID sessionIndex, String uniqueId, Confirmation confirmation) throws NotConnectedException, UnsupportedFeatureException, OccurenceConstraintException {
+    return server.asyncCompleteRequest(sessionIndex, uniqueId, confirmation);
   }
 }

@@ -69,13 +69,13 @@ public class JSONServer implements IServerAPI {
     protocols.add(new Protocol(""));
     draftOcppOnly = new Draft_6455(Collections.emptyList(), protocols);
 
-    if(configuration.getParameter("HTTP_HEALTH_CHECK_ENABLED", true)) {
+    if(configuration.getParameter(JSONConfiguration.HTTP_HEALTH_CHECK_ENABLED, true)) {
       logger.info("JSONServer 1.6 with HttpHealthCheckDraft");
       this.listener = new WebSocketListener(sessionFactory, configuration, draftOcppOnly, new Draft_HttpHealthCheck());
     } else {
       this.listener = new WebSocketListener(sessionFactory, configuration, draftOcppOnly);
     }
-    server = new Server(this.listener, featureRepository, new PromiseRepository());
+    server = new Server(this.listener, new PromiseRepository());
     featureRepository.addFeatureProfile(coreProfile);
   }
 
@@ -172,5 +172,10 @@ public class JSONServer implements IServerAPI {
   public CompletionStage<Confirmation> send(UUID session, Request request)
       throws OccurenceConstraintException, UnsupportedFeatureException, NotConnectedException {
     return server.send(session, request);
+  }
+
+  @Override
+  public boolean asyncCompleteRequest(UUID sessionIndex, String uniqueId, Confirmation confirmation) throws NotConnectedException, UnsupportedFeatureException, OccurenceConstraintException {
+    return server.asyncCompleteRequest(sessionIndex, uniqueId, confirmation);
   }
 }
